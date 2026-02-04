@@ -96,11 +96,11 @@ public class FrontRed extends LinearOpMode
             
             new Thread(() -> {
                 robot.drive(-48, 0.8, 0); // 60
-                robot.turnTuah(6, 0.5, 0);
+                robot.turn(6, 0.5, 0);
             }).start();
 
             ShootingSequence(1300);
-            robot.turnTuah(140, 1, 0);
+            robot.turn(140, 1, 0);
             robot.strafe(6, 1, 0);// ignore
             intake.setPower(1);
             robot.drive(-37, 0.35, 0); // -49
@@ -115,9 +115,9 @@ public class FrontRed extends LinearOpMode
             
             sleep(50);
             robot.drive(37, 0.8, 0);
-            robot.turnTuah(8, 1, 0);
+            robot.turn(8, 1, 0);
             sleep(4500);
-            robot.turnTuah(139, 1, 0);
+            robot.turn(139, 1, 0);
             robot.strafe(27, 0.8, 0);
             intake.setPower(1);
             robot.drive(-45, 0.3, 0);
