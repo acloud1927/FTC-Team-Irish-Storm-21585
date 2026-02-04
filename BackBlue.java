@@ -104,20 +104,20 @@ public class BackBlue extends LinearOpMode
         if (opModeIsActive()) {
             
             new Thread(() -> {
-                robot.drive(10, 1, 0);
-                robot.turnTuah(23.5, 1, 0);
+                robot.drive(7, 1, 0);
+                robot.turn(27, 1, 0);
             }).start();
 
-            ShootingSequence(1510); //1570
+            ShootingSequence(1500); //1570
 
-            robot.turnTuah(-90, 1, 0);
-            robot.strafe(15, 0.5, 0);
+            robot.turn(-90, 1, 0);
+            robot.strafe(17, 0.5, 0);
 
             intake.setVelocity(1550);
-            robot.drive(-44, 0.35, 1);
+            robot.drive(-44, 0.3, 0);
             robot.drive(42, 1, 0);
             intake.setVelocity(0);
-            robot.turnTuah(27, 1, 0);
+            robot.turn(27, 1, 0);
 
             new Thread(() -> {
                 intake.setPower(-1);
@@ -125,7 +125,7 @@ public class BackBlue extends LinearOpMode
                 intake.setPower(0);
                 ShootingSequence(1530);  //1500
                 robot.drive(33, 1, 0);
-                robot.turnTuah(-90, 1, 0);
+                robot.turn(-90, 1, 0);
             }).start();
 
             robot.drive(-15, 1, 0);
@@ -158,16 +158,16 @@ public class BackBlue extends LinearOpMode
         blocker.setPosition(0.17);
         
         new Thread(() -> {
-            for (int w = 0; w < 1000; w++) {
+            for (int w = 0; w < 1300; w++) {
                 shooter.setVelocity((2 - (shooter.getVelocity()/power)) * power);
             }
             shooter.setVelocity(0);
         }).start();
         
-        sleep(3000);
+        sleep(3500);
         blocker.setPosition(0);
         
-        sleep(200);
+        sleep(1200);
         Intake(100);
         
         sleep(900);
