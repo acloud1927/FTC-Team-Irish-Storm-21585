@@ -51,6 +51,8 @@ public class BackBlue extends LinearOpMode
     int axialDist = 0;
     
     private int shootingTolerance = 100;
+    
+    private PIDController PID;
 
 
     @Override public void runOpMode()
@@ -97,6 +99,7 @@ public class BackBlue extends LinearOpMode
             telemetry.update();
         }
 
+        PID = new PIDController(7, 0, 0.1);
 
         waitForStart();
         robot.resetHeading();
@@ -105,44 +108,64 @@ public class BackBlue extends LinearOpMode
             
             new Thread(() -> {
                 robot.drive(7, 1, 0);
-                robot.turn(27, 1, 0);
+                robot.turn(26.5, 0.8, 0);
             }).start();
 
-            ShootingSequence(1500); //1570
+            sleep(300);
+            ShootingSequence(1300); //1570
 
             robot.turn(-90, 1, 0);
-            robot.strafe(17, 0.5, 0);
+            robot.strafe(15.5, 0.5, 0);
 
             intake.setVelocity(1550);
-            robot.drive(-44, 0.3, 0);
-            robot.drive(42, 1, 0);
+            robot.drive(-44.5, 0.9, 0);
+            robot.drive(38, 1, 0);
             intake.setVelocity(0);
-            robot.turn(27, 1, 0);
-
+            
             new Thread(() -> {
+                sleep(800);
                 intake.setPower(-1);
                 sleep(40);
                 intake.setPower(0);
-                ShootingSequence(1530);  //1500
-                robot.drive(33, 1, 0);
+                ShootingSequence(1300);  //1500
+                robot.turn(22, 0.7, 0);
+                robot.drive(37, 1, 0);
                 robot.turn(-90, 1, 0);
             }).start();
-
-            robot.drive(-15, 1, 0);
+            
+            robot.turn(29, 0.7, 0);
+            robot.drive(-13.5, 1, 0);
+            sleep(5900);
+            intake.setPower(1);
+            robot.drive(-27, 0.9, 0);
+            
+            new Thread( () -> {
+                sleep(3520);
+                intake.setPower(-1);
+                sleep(35);
+                intake.setPower(0);
+                ShootingSequence(1370);
+            }).start();
+            
+            manualOverride(1400, -0.5, 0.9, -0.5, 0.9);
+            robot.turn(90, 1, 0);
+            manualOverride(2400, -1, 0.28, 0.28, -1);
+            //robot.strafe(-30, 1, 0);
+            robot.turn(27, 0.8, 0);
             sleep(1000000);
         }
 
     }
 
-    public void manualOverride(int time, double power) {
+    public void manualOverride(int time, double FL, double FR, double BL, double BR) {
         Front_left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Front_right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Back_left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Back_right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        Front_right.setPower(power);
-        Front_left.setPower(power);
-        Back_right.setPower(power);
-        Back_left.setPower(power);
+        Front_right.setPower(FR);
+        Front_left.setPower(FL);
+        Back_right.setPower(BR);
+        Back_left.setPower(BL);
         sleep(time);
         Front_right.setPower(0);
         Front_left.setPower(0);
@@ -158,25 +181,25 @@ public class BackBlue extends LinearOpMode
         blocker.setPosition(0.17);
         
         new Thread(() -> {
-            for (int w = 0; w < 1300; w++) {
-                shooter.setVelocity((2 - (shooter.getVelocity()/power)) * power);
+            for (int w = 0; w < 460; w++) {
+                shooter.setVelocity(shooter.getVelocity() + PID.calculate(shooter.getVelocity(), power));
             }
             shooter.setVelocity(0);
         }).start();
         
-        sleep(3500);
+        sleep(2000);
         blocker.setPosition(0);
         
-        sleep(1200);
+        sleep(300);
         Intake(100);
         
-        sleep(900);
+        sleep(120);
         Intake(400);
         
-        sleep(700);
-        Intake(2000);
+        sleep(300);
+        Intake(1500);
         
-        blocker.setPosition(0.20);
+        blocker.setPosition(0.23);
 
     }
     
