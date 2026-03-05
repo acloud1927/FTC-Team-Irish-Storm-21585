@@ -8,6 +8,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
@@ -28,21 +29,21 @@ public class SimplifiedOdometryRobot{
 
     private static final double DRIVE_GAIN          = 0.065;    // Strength of axial position control
     private static final double DRIVE_ACCEL         = 5.0;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double DRIVE_TOLERANCE     = 0.3;     // Controller is is "inPosition" if position error is < +/- this amount
-    private static final double DRIVE_DEADBAND      = 0.2;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
+    private static final double DRIVE_TOLERANCE     = 1.5;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double DRIVE_DEADBAND      = 0.5;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double DRIVE_MAX_AUTO      = 0.9;     // "default" Maximum Axial power limit during autonomous
 
     private static final double STRAFE_GAIN         = 0.065;    // Strength of lateral position control
     private static final double STRAFE_ACCEL        = 5.0;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double STRAFE_TOLERANCE    = 0.5;     // Controller is is "inPosition" if position error is < +/- this amount
-    private static final double STRAFE_DEADBAND     = 0.2;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
+    private static final double STRAFE_TOLERANCE    = 1.2;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double STRAFE_DEADBAND     = 1.0;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double STRAFE_MAX_AUTO     = 0.9;     // "default" Maximum Lateral power limit during autonomous
 
-    private static final double YAW_GAIN            = 0.03;    // Strength of Yaw position control
-    private static final double YAW_ACCEL           = 3.0;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double YAW_TOLERANCE       = 0.3;     // Controller is is "inPosition" if position error is < +/- this amount
-    private static final double YAW_DEADBAND        = 0.2;    // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
-    private static final double YAW_MAX_AUTO        = 0.8;     // "default" Maximum Yaw power limit during autonomous
+    private static final double YAW_GAIN            = 0.025;    // Strength of Yaw position control
+    private static final double YAW_ACCEL           = 3.7;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
+    private static final double YAW_TOLERANCE       = 0.7;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double YAW_DEADBAND        = 0.5;    // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
+    private static final double YAW_MAX_AUTO        = 0.65;     // "default" Maximum Yaw power limit during autonomous
 
     // Public Members
     public double driveDistance     = 0; // scaled axial distance (+ = forward)
