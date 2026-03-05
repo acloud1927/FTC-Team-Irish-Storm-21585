@@ -1,6 +1,10 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -12,6 +16,7 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.JavaUtil;
@@ -28,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 @TeleOp(name = "TempestTeleopPID")
 public class Teleop extends LinearOpMode {
 
+    private IMU imu;
+
     private DcMotor Back_right;
     private DcMotor Front_right;
     private DcMotor Front_left;
@@ -43,18 +50,25 @@ public class Teleop extends LinearOpMode {
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTag;
     
+    private double waitingTime = 50;
     private double targetSpeed = 1400;
     private boolean shootinGooooood = false;
-    private double shootingTolerance = 50;
+    private double shootingTolerance = 60;
     private boolean Shooting = false;
     private boolean REY1 = false;
+    private boolean previousA = false;
     
     private double turningPower = 0;
     
     ElapsedTime tick = new ElapsedTime();
     boolean waitingToShoot = false;
 
+    private double angle;
+    private double direction;
+    private double dx;
+    private double dy;
     
+    private PIDController PID;
   
 
     @Override
@@ -68,6 +82,8 @@ public class Teleop extends LinearOpMode {
         leftLift = hardwareMap.get(DcMotor.class, "leftLift");
         rightLift = hardwareMap.get(DcMotor.class, "rightLift");
         blocker = hardwareMap.get(Servo.class, "blocker");
+        imu = hardwareMap.get(IMU.class, "imu");
+
         
         // Create the AprilTag processor
         aprilTag = new AprilTagProcessor.Builder().build();
@@ -93,13 +109,16 @@ public class Teleop extends LinearOpMode {
         telemetry.addLine("Ready for start; initializing AprilTag detection...");
         telemetry.update();
 
-
+        shooter.setVelocity(0);
+        imu.resetYaw();
+        
+        PID = new PIDController(7, 0, 0.1);
+        
         waitForStart();
 
      
         leftLift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightLift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
 
         shooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         shooter.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
@@ -122,6 +141,11 @@ public class Teleop extends LinearOpMode {
         intake.setDirection(DcMotor.Direction.REVERSE);
         leftLift.setDirection(DcMotor.Direction.REVERSE);
         rightLift.setDirection(DcMotor.Direction.REVERSE);
+        
+        RevHubOrientationOnRobot orientationOnRobot =
+                new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.BACKWARD,
+                        RevHubOrientationOnRobot.UsbFacingDirection.RIGHT);
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
      
         if (opModeIsActive()) {
             try {
@@ -169,7 +193,7 @@ public class Teleop extends LinearOpMode {
         if (gamepad2.b == true) {
             blocker.setPosition(0);
         } else if (gamepad2.a == true) {
-            blocker.setPosition(0.15);
+            blocker.setPosition(0.2);
         }
     }
     
@@ -178,9 +202,17 @@ public class Teleop extends LinearOpMode {
     }
 
     private void Shooter() {
+        if (gamepad2.dpad_up) {
+            waitingTime += 2;
+        } else if (gamepad2.dpad_down) {
+            waitingTime -= 2;
+        }
         if (gamepad2.left_trigger > 0) {
 
-            shooter.setVelocity((2 - (shooter.getVelocity()/targetSpeed)) * targetSpeed);
+            
+            //shooter.setVelocity((2 - (shooter.getVelocity()/targetSpeed)) * targetSpeed);
+            //shooter.setVelocity(targetSpeed);
+            shooter.setVelocity(shooter.getVelocity() + PID.calculate(shooter.getVelocity(), targetSpeed));
             
             if (withinShootingRange()) {
                 if (!waitingToShoot) {
@@ -189,7 +221,7 @@ public class Teleop extends LinearOpMode {
                     blocker.setPosition(0);
                 }
             
-                if (tick.milliseconds() >= (2400 - (20*shootingTolerance))) {
+                if (tick.milliseconds() >= waitingTime) {//(2400 - (20*shootingTolerance))) {
                     if (withinShootingRange()) {
                         shootinGooooood = true;
                     } else {
@@ -205,7 +237,7 @@ public class Teleop extends LinearOpMode {
             shooter.setVelocity(-1300);
         } else {
             shooter.setVelocity(0);
-            blocker.setPosition(0.15);
+            blocker.setPosition(0.2);
         }
         
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
@@ -213,8 +245,10 @@ public class Teleop extends LinearOpMode {
         if (currentDetections.size() == 1) {
             for (AprilTagDetection detection : currentDetections) {
                 if (detection.ftcPose != null) {
-                    targetSpeed = Math.min(Math.max(6.7 * detection.ftcPose.y + 922, 1380), 1650);//6.7x + 922
-                    shootingTolerance = 110 - detection.ftcPose.y/2;//130 - x
+                    //targetSpeed = Math.min(Math.max(6.7 * detection.ftcPose.y + 922, 1380), 1650);
+                    targetSpeed = Math.min(4.94 * detection.ftcPose.y + 836.28, 1330);
+                    waitingTime = 0.85 * detection.ftcPose.y + 10; //- 03.09;
+                    shootingTolerance = (-(0.2) * detection.ftcPose.y) + 50;
                 }
             }
         } 
@@ -233,12 +267,10 @@ public class Teleop extends LinearOpMode {
 
     private void Lift() {
         
-     
-        
-        if (gamepad1.y) {
+        if (gamepad1.x) {
             leftLift.setPower(0.95);
             rightLift.setPower(1);
-        } else if (gamepad1.y) {
+        } else if (gamepad1.b) {
             leftLift.setPower(-0.95);
             rightLift.setPower(-1);
         } else {
@@ -246,24 +278,33 @@ public class Teleop extends LinearOpMode {
             rightLift.setPower(0);
         }
     }
+    
+    private void Orient() {
+        double y = gamepad1.left_stick_y;
+        double x = gamepad1.left_stick_x;
+        direction = -gamepad1.right_stick_x;
+        
+        double heading = -imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        
+        dx = x * Math.cos(-heading) - y * Math.sin(-heading);
+        dy = x * Math.sin(-heading) + y * Math.cos(-heading);
+                
+        if (gamepad1.a && !previousA) {
+            imu.resetYaw();
+        }
+        previousA = gamepad1.a;
+        
+    }
 
     private void DriveTrain() {
-        if (!gamepad2.dpad_left) {
-            float Strafe;
-            float Turn;
-            float forward;
-            double denominator;
-
-            Turn = -gamepad2.right_stick_x;
-            Strafe = gamepad2.left_stick_x;
-            forward = gamepad2.left_stick_y;
-            forward = forward * 1f;
-            denominator = JavaUtil.maxOfList(JavaUtil.createListWith(1, Turn + forward + Strafe));
-            Back_left.setPower((forward + (Strafe - Turn)) * denominator);
-            Front_left.setPower((forward - (Strafe + Turn)) * denominator);
-            Back_right.setPower((forward - (Strafe - Turn)) * denominator);
-            Front_right.setPower((forward + Strafe + Turn) * denominator);
-            
+        Orient();
+        if (!gamepad1.dpad_left) {
+            double denominator = JavaUtil.maxOfList(JavaUtil.createListWith(1, direction + dy + dx)); 
+            Back_left.setPower((dy + (dx - direction)) * denominator); 
+            Front_left.setPower((dy - (dx + direction)) * denominator); 
+            Back_right.setPower((dy - (dx - direction)) * denominator); 
+            Front_right.setPower((dy + dx + direction) * denominator);
+                    
         } else {
             
             List<AprilTagDetection> currentDetections = aprilTag.getDetections();
@@ -272,7 +313,7 @@ public class Teleop extends LinearOpMode {
                 for (AprilTagDetection detection : currentDetections) {
                     if (detection.id == 20 && detection.ftcPose != null) {
                         
-                        turningPower = (detection.ftcPose.z - 10) * 0.02;
+                        turningPower = (detection.ftcPose.z - 7) * 0.02;
                         
                         Back_left.setPower(turningPower);
                         Front_left.setPower(turningPower);
@@ -295,13 +336,14 @@ public class Teleop extends LinearOpMode {
     }
     
     private void Telemetry() {
-        telemetry.addData("BACK_LEFT:", Back_left.getPower());
-        telemetry.addData("BACK_RIGHT:", Back_right.getPower());
-        telemetry.addData("FRONT_RIGHT:", Front_right.getPower());
-        telemetry.addData("FRONT_LEFT:", Front_left.getPower());
+        telemetry.addData("BACK_LEFT", Back_left.getPower());
+        telemetry.addData("BACK_RIGHT", Back_right.getPower());
+        telemetry.addData("FRONT_RIGHT", Front_right.getPower());
+        telemetry.addData("FRONT_LEFT", Front_left.getPower());
         telemetry.addData("Shooting Power", shooter.getVelocity());
         telemetry.addData("Target Power", targetSpeed);
-        telemetry.addData("Waiting Time", 2400 - (20*shootingTolerance));
+        telemetry.addData("Waiting Time", waitingTime);
+        telemetry.addData("PID output", PID.calculate(shooter.getVelocity(), targetSpeed));
 
             List<AprilTagDetection> currentDetections = aprilTag.getDetections();
 
@@ -312,16 +354,7 @@ public class Teleop extends LinearOpMode {
                     if (detection.ftcPose != null) {
                         telemetry.addLine(String.format("ID: %d", detection.id));
                         telemetry.addLine(String.format("Pose: X=%.1f Y=%.1f Z=%.1f", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
-                        if (shootinGooooood == false) {
-                            telemetry.addData("", "\n" +
-                                "------------------------\n" +
-                                "|                            |\n" +
-                                "|                            |\n" +
-                                "|                            |\n" +
-                                "|                            |\n" +
-                                "|                            |\n" +
-                                "------------------------\n");
-                        } else {
+                        if (shootinGooooood) {
                             telemetry.addData("", "\n" +
                                 "------------------------\n" +
                                 "|                   /       |\n" +
@@ -329,6 +362,15 @@ public class Teleop extends LinearOpMode {
                                 "|    l          /           |\n" +
                                 "|       l     /             |\n" +
                                 "|          v                |\n" +
+                                "------------------------\n");
+                        } else {
+                            telemetry.addData("", "\n" +
+                                "------------------------\n" +
+                                "|                           |\n" +
+                                "|                           |\n" +
+                                "|                           |\n" +
+                                "|                           |\n" +
+                                "|                           |\n" +
                                 "------------------------\n");
                         }
                     }
