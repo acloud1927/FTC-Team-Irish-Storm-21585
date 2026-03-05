@@ -49,6 +49,8 @@ public class FrontRed extends LinearOpMode
     static final double DRIVE_GEAR_REDUCTION = 1.0;     
     static final double WHEEL_CIRC = 3.78;
     int axialDist = 0;
+    
+    private PIDController PID;
 
 
     @Override public void runOpMode()
@@ -88,6 +90,7 @@ public class FrontRed extends LinearOpMode
             telemetry.update();
         }
 
+        PID = new PIDController(7, 0, 0.1);
 
         waitForStart();
         robot.resetHeading();
@@ -99,44 +102,60 @@ public class FrontRed extends LinearOpMode
                 robot.turn(6, 0.5, 0);
             }).start();
 
-            ShootingSequence(1300);
+            ShootingSequence(1100);
             robot.turn(140, 1, 0);
             robot.strafe(6, 1, 0);// ignore
             intake.setPower(1);
-            robot.drive(-37, 0.35, 0); // -49
+            robot.drive(-39.7, 0.75, 0); // -49
+            //manualOverride(1100, -0.7, -0.7, -0.7, -0.7);
             
             new Thread(() -> {
                 sleep(1700);
                 intake.setPower(-1);
-                sleep(35);
+                sleep(45);
                 intake.setPower(0);
-                ShootingSequence(1300);
+                ShootingSequence(1100);
             }).start();
             
             sleep(50);
             robot.drive(37, 0.8, 0);
-            robot.turn(8, 1, 0);
-            sleep(4500);
+            robot.turn(8, 0.7, 0);
+            sleep(3500);
             robot.turn(139, 1, 0);
-            robot.strafe(27, 0.8, 0);
+            robot.strafe(24, 0.9, 0);
             intake.setPower(1);
-            robot.drive(-45, 0.3, 0);
+            robot.drive(-44, 0.7, 0);
+            //manualOverride(1400, -0.7, -0.7, -0.7, -0.7);
+            manualOverride(1700, 0.9, -0.5, 0.9, -0.5);
+            //manualOverride(200, 1, 0, 0, 1);
+            intake.setPower(0);
             
+            new Thread(() -> {
+                intake.setPower(-1);
+                sleep(45);
+                intake.setPower(0);
+                ShootingSequence(1100);
+            }).start();
+            
+            manualOverride(1500, -1, 0, -0.7, -1);
+            robot.turn(8, 1, 0);
+            //ShootingSequence(1100);
+            shooter.setVelocity(0);
             sleep(1000000);
 
         }
 
     }
 
-    public void manualOverride(int time, double power) {
+    public void manualOverride(int time, double FL, double FR, double BL, double BR) {
         Front_left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Front_right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Back_left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Back_right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        Front_right.setPower(power);
-        Front_left.setPower(power);
-        Back_right.setPower(power);
-        Back_left.setPower(power);
+        Front_right.setPower(FR);
+        Front_left.setPower(FL);
+        Back_right.setPower(BR);
+        Back_left.setPower(BL);
         sleep(time);
         Front_right.setPower(0);
         Front_left.setPower(0);
@@ -152,25 +171,26 @@ public class FrontRed extends LinearOpMode
         blocker.setPosition(0.15);
         
         new Thread(() -> {
-            for (int w = 0; w < 1000; w++) {
-                shooter.setVelocity((2 - (shooter.getVelocity()/power)) * power);
+            for (int w = 0; w < 450; w++) {
+                shooter.setVelocity(shooter.getVelocity() + PID.calculate(shooter.getVelocity(), power));
             }
             shooter.setVelocity(0);
         }).start();
         
-        sleep(3300);
+        sleep(2200);
         blocker.setPosition(0);
         
-        sleep(1100);
+        sleep(1300);
         Intake(100);
         
-        sleep(100);
+        sleep(50);
         Intake(400);
         
-        sleep(500);
-        Intake(2000);
+        sleep(50);
+        Intake(1400);
         
-        blocker.setPosition(0.15);
+        blocker.setPosition(0.22);
+        shooter.setVelocity(0);
 
     }
     
